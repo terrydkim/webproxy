@@ -11,7 +11,7 @@
 void doit(int fd);
 void read_requesthdrs(rio_t *rp);
 int parse_uri(char *uri, char *filename, char *cgiargs);
-void serve_static(int fd, char *filename, int filesize);
+void serve_static(int fd, char *filename, int filesize, char *method);
 void get_filetype(char *filename, char *filetype);
 void serve_dynamic(int fd, char *filename, char *cgiargs);
 void clienterror(int fd, char *cause, char *errnum,
@@ -65,7 +65,7 @@ void doit(int fd)
   sscanf(buf, "%s %s %s", method, uri, version);
 
   // HTTP 메소드가 GET인지 확인합니다.
-  if (strcasecmp(method, "GET") || strcasecmp(method, "HEAD")) // head 도 추가
+  if (strcasecmp(method, "GET") != 0 && strcasecmp(method, "HEAD") != 0) // head 도 추가
   {
     // GET이 아닌 다른 메소드인 경우 501 Not Implemented 에러를 반환합니다.
     clienterror(fd, method, "501", "Not Implemented",
@@ -97,7 +97,7 @@ void doit(int fd)
     }
 
     // 정적 파일인 경우, serve_static 함수를 호출하여 파일의 내용을 클라이언트에게 반환합니다.
-    serve_static(fd, filename, sbuf.st_size);
+    serve_static(fd, filename, sbuf.st_size, method);
   }
   else
   {
@@ -177,7 +177,7 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
  * serve_static - copy a file back to the client
  */
 /* $begin serve_static */
-void serve_static(int fd, char *filename, int filesize)
+void serve_static(int fd, char *filename, int filesize, char *method)
 {
   int srcfd;
   char *srcp, filetype[MAXLINE], buf[MAXBUF];
@@ -193,15 +193,19 @@ void serve_static(int fd, char *filename, int filesize)
   sprintf(buf, "Content-type: %s\r\n\r\n", filetype);
   Rio_writen(fd, buf, strlen(buf));
 
-  /* Send response body to client */
-  srcfd = Open(filename, O_RDONLY, 0);
-  // srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
-  srcp = malloc(filesize);
-  Rio_readn(srcfd, srcp, filesize); // srcfd에서 filesize 만큼 srcp에 저장
-  Close(srcfd);
-  Rio_writen(fd, srcp, filesize);
-  // Munmap(srcp, filesize);
-  free(srcp);
+  // get method 일때만 body 쓰기
+  if (strcasecmp(method, "GET") == 0)
+  {
+    /* Send response body to client */
+    srcfd = Open(filename, O_RDONLY, 0);
+    // srcp = Mmap(0, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
+    srcp = malloc(filesize);
+    Rio_readn(srcfd, srcp, filesize); // srcfd에서 filesize 만큼 srcp에 저장
+    Close(srcfd);
+    Rio_writen(fd, srcp, filesize);
+    // Munmap(srcp, filesize);
+    free(srcp);
+  }
 }
 
 /*
