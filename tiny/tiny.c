@@ -61,7 +61,7 @@ void doit(int fd)
   Rio_readinitb(&rio, fd);
   Rio_readlineb(&rio, buf, MAXLINE);
   printf("Request headers:\n");
-  printf("%s", buf);
+  printf("%s", buf); //  GET / HTTP/1.1
   sscanf(buf, "%s %s %s", method, uri, version);
 
   // HTTP 메소드가 GET인지 확인합니다.
@@ -185,13 +185,17 @@ void serve_static(int fd, char *filename, int filesize, char *method)
   /* Send response headers to client */
   get_filetype(filename, filetype);
   sprintf(buf, "HTTP/1.1 200 OK\r\n");
+  // Rio_writen(fd, buf, strlen(buf));
+  sprintf(buf, "%sServer: Tiny Web Server\r\n",buf);
+  // Rio_writen(fd, buf, strlen(buf));
+  sprintf(buf, "%sConnection: close\r\n", buf);
+  // Rio_writen(fd, buf, strlen(buf));
+  sprintf(buf, "%sContent-length: %d\r\n", buf,filesize);
+  // Rio_writen(fd, buf, strlen(buf));
+  sprintf(buf, "%sContent-type: %s\r\n\r\n", buf,filetype);
   Rio_writen(fd, buf, strlen(buf));
-  sprintf(buf, "Server: Tiny Web Server\r\n");
-  Rio_writen(fd, buf, strlen(buf));
-  sprintf(buf, "Content-length: %d\r\n", filesize);
-  Rio_writen(fd, buf, strlen(buf));
-  sprintf(buf, "Content-type: %s\r\n\r\n", filetype);
-  Rio_writen(fd, buf, strlen(buf));
+  printf("Response headers:\n");
+  printf("%s",buf);
 
   // get method 일때만 body 쓰기
   if (strcasecmp(method, "GET") == 0)
