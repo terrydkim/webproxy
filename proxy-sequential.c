@@ -105,7 +105,7 @@ void modify_http_header(char *http_header, char *hostname, int port, char *path,
 
   sprintf(http_header, "GET %s HTTP/1.0\r\n", path);
 
-  while (Rio_readlineb(server_rio, buf, MAXLINE) > 0) // 데이터를 읽어오면 실제 읽어온 데이터 byte만큼 return 
+  while (Rio_readlineb(server_rio, buf, MAXLINE) > 0) // 데이터를 읽어오면 실제 읽어온 데이터 byte만큼 return
   {
     if (strcmp(buf, "\r\n") == 0)
       break;
